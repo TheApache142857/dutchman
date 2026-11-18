@@ -230,3 +230,8 @@ two arguments.
 Merge queue and full CI Docker smoke tests reuse the optimized, non-LTO Bookworm
 programs built for placements with `docker/release.Dockerfile`. The standalone Docker
 workflow continues to build the source `Dockerfile`, including its Rust 1.88 builder.
+
+Merge groups also build the source `Dockerfile` when either Docker recipe, `.dockerignore`,
+Rust source/manifests, runtime files, or another potential build input changes. Unknown
+paths or an unavailable diff base require the source build. The reused-tools image and
+its smoke tests remain required; docs/support-only changes retain the fast image path.
