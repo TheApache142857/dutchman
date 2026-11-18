@@ -226,3 +226,7 @@ two arguments.
 - **FreeCAD.** `--to freecad` writes its macro without FreeCAD, but `--to fcstd` and
   `--verify` need FreeCAD's command-line program, which the image does not include. Build
   your own image on top of this one with FreeCAD installed, and set `FREECAD_CMD` to it.
+
+Merge queue and full CI Docker smoke tests reuse the optimized, non-LTO Bookworm
+programs built for placements with `docker/release.Dockerfile`. The standalone Docker
+workflow continues to build the source `Dockerfile`, including its Rust 1.88 builder.

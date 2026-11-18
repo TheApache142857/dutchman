@@ -317,14 +317,26 @@ jobs:
   # Builds the Docker image (docs/docker.md), converts a fixture in it, starts its MCP server,
   # and converts a fixture through its web server (docs/web.md).
   docker:
-    needs: changes
-    if: github.event_name != 'pull_request' && needs.changes.outputs.docker == 'true'
+    needs: [changes, placements]
+    if: always() && !cancelled() && github.event_name != 'pull_request' && needs.changes.outputs.docker == 'true' && (needs.changes.outputs.full != 'true' || needs.placements.result == 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        if: needs.changes.outputs.full == 'true'
+        with:
+          name: dutchman-bin
+          path: bin
+      - name: Prepare the image from the placement programs
+        if: needs.changes.outputs.full == 'true'
+        run: |
+          mkdir -p build-context/image/amd64/licences
+          cp bin/dutchman bin/dutchman-mcp bin/dutchman-web LICENSE NOTICE build-context/image/amd64/
+          cp licences/*.txt build-context/image/amd64/licences/
       - uses: docker/setup-buildx-action@v4
       - uses: docker/build-push-action@v7
+        if: needs.changes.outputs.full != 'true'
         with:
           context: .
           load: true
@@ -336,6 +348,17 @@ jobs:
           cache-from: type=gha
           # Only main writes the layer cache; a pull request reads it.
           cache-to: ${{ github.ref == 'refs/heads/main' && 'type=gha,mode=max' || '' }}
+      - name: Build the image from the placement programs
+        if: needs.changes.outputs.full == 'true'
+        uses: docker/build-push-action@v7
+        with:
+          context: build-context
+          file: docker/release.Dockerfile
+          load: true
+          tags: dutchman:ci
+          cache-from: type=gha,scope=ci-runtime
+          # Queue groups and tags restore but never compete to write the runtime cache.
+          cache-to: ${{ github.ref == 'refs/heads/main' && 'type=gha,mode=max,scope=ci-runtime' || '' }}
       - name: Convert a fixture in the image
         run: |
           fixtures="$PWD/crates/dutchman-core/tests/fixtures"
