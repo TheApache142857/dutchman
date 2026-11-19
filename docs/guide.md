@@ -806,6 +806,15 @@ The plugin aborts on host input failures before writing output. Its bounded loss
 prioritizes dropped and degraded losses and includes an explicit truncation notice and
 `details.truncation` counts when shortened; see [the plugin contract](plugin.md).
 
+A new-body extrude, revolve, sweep or loft can still be reported as `mapped`
+when its required profile or path is absent from the source and its stored result
+is written as a named Import so later features can continue. This fallback runs only
+after ordinary mapping and measured inference fail. An unresolved selection in an
+existing sketch, an unsupported option or an unconfirmed measurement keeps its
+usual refusal. The Degraded loss `history/body-fallback-imported` explains the
+absent input. Recover the original external design to recover the editable recipe.
+Cuts and joins cannot use this fallback.
+
 Each history row in `dutchman.convert/1` and `dutchman.inspect/1` now includes
 `output_ids` and `output_match`, linking it to features in the saved design. A split
 can have several ids; dropped or merged rows have none. Inspection returns empty ids
