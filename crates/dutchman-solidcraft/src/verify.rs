@@ -419,6 +419,8 @@ pub const WINDOW_OLDEST: [u64; 3] = [0, 18, 2];
 /// Writer capabilities whose output depends on the target release.
 #[derive(Clone, Copy)]
 pub enum VersionGate {
+    /// Sweep paths selected from proven input edges.
+    TopologicalEdges,
     /// Explicit flat tips compensate for changed entry-recess angle handling.
     EntryRecessTip,
     /// Editable sketch-profile coils.
@@ -440,6 +442,7 @@ pub enum VersionGate {
 impl VersionGate {
     fn minimum(self) -> SolidCraftVersion {
         match self {
+            Self::TopologicalEdges => SolidCraftVersion::V0_44_0,
             Self::EntryRecessTip => SolidCraftVersion::V0_22_1,
             Self::ConePrimitive => SolidCraftVersion::V0_24_1,
             Self::HistoryBody | Self::SplitFaces => SolidCraftVersion::V0_40_0,
@@ -512,6 +515,10 @@ pub fn solidcraft_minor(line: &str) -> Option<String> {
 pub struct SolidCraftVersion([u64; 3]);
 
 impl SolidCraftVersion {
+    /// Release used for body-edge sweep paths.
+    /// Also the first release with dimensional 3D sketch wire constraints and scoped extrude booleans.
+    pub const V0_44_0: Self = Self([0, 44, 0]);
+
     /// Oldest release in the window when history-body and face-tool mapping was added.
     pub const V0_40_0: Self = Self([0, 40, 0]);
 
@@ -529,9 +536,6 @@ impl SolidCraftVersion {
 
     /// First release with saved component History bar visibility.
     pub const V0_30_0: Self = Self([0, 30, 0]);
-
-    /// First release with dimensional 3D sketch wire constraints and scoped extrude booleans.
-    pub const V0_44_0: Self = Self([0, 44, 0]);
 
     /// The minor used in presentation; patch-sensitive writer gates keep the full version.
     pub fn minor(self) -> String {
