@@ -41,6 +41,7 @@ jobs:
   # always exercise the full matrix after merge.
   changes:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       full: ${{ github.event_name != 'pull_request' && github.event_name != 'merge_group' }}
       rust: ${{ steps.diff.outputs.rust }}
@@ -96,6 +97,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
@@ -105,6 +107,7 @@ jobs:
 
   release-notes:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
         with:
@@ -135,6 +138,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
@@ -153,6 +157,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.full == 'true' && needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
@@ -177,6 +182,7 @@ jobs:
         # ARM64 is test-arm below, which gets a second try when its runner is shut down.
         os: ${{ fromJSON((github.event_name == 'pull_request' || github.event_name == 'merge_group') && '["ubuntu-latest"]' || '["ubuntu-latest", "windows-latest"]') }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: ${{ matrix.os == 'windows-latest' && 30 || 25 }}
     env:
       # Debug info is most of a cold Windows build's time and is not needed to run the tests.
       CARGO_PROFILE_DEV_DEBUG: "0"
@@ -209,13 +215,14 @@ jobs:
         run: cargo test --locked -p dutchman --no-default-features
 
   # The tests on Linux ARM64, as test runs them. GitHub's ARM runners are sometimes shut down
-  # mid-job (exit code 143, "The runner has received a shutdown signal"); test-arm-again then
-  # runs them once more, and ci-result counts that second try in place of the first.
+  # mid-job (exit code 143, "The runner has received a shutdown signal") or freeze until the
+  # job times out; test-arm-again retries once, and ci-result counts that second try.
   test-arm:
     needs: changes
     if: needs.changes.outputs.full == 'true' && needs.changes.outputs.code == 'true'
     name: test (ubuntu-24.04-arm)
     runs-on: ubuntu-24.04-arm
+    timeout-minutes: 230
     env:
       CARGO_PROFILE_DEV_DEBUG: "0"
       CARGO_PROFILE_TEST_DEBUG: "0"
@@ -237,12 +244,13 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - run: cargo test --workspace --locked --features dutchman-gui/test-support
 
-  # A second try of test-arm, only when its runner was shut down; a real failure is not retried.
+  # Retry test-arm after a timeout or runner shutdown; never retry a cancelled workflow or test failure.
   test-arm-again:
     needs: [changes, test-arm]
-    if: always() && needs.changes.outputs.full == 'true' && needs.changes.outputs.code == 'true' && needs.test-arm.result == 'failure'
+    if: always() && !cancelled() && needs.changes.outputs.full == 'true' && needs.changes.outputs.code == 'true' && (needs.test-arm.result == 'failure' || needs.test-arm.result == 'cancelled')
     name: test (ubuntu-24.04-arm, again)
     runs-on: ubuntu-24.04-arm
+    timeout-minutes: 230
     permissions:
       contents: read
       actions: read
@@ -254,14 +262,21 @@ jobs:
       # core it is shut down while compiling the desktop app and web crates.
       CARGO_BUILD_JOBS: "2"
     steps:
-      - name: Retry only after a runner shutdown
+      - name: Retry only after a timeout or runner shutdown
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          job=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${GITHUB_RUN_ATTEMPT}/jobs" --paginate \
-            -q '.jobs[] | select(.name == "test (ubuntu-24.04-arm)") | .id' | head -1)
+          set -o pipefail
+          record=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${GITHUB_RUN_ATTEMPT}/jobs" --paginate \
+            -q '.jobs[] | select(.name == "test (ubuntu-24.04-arm)") | [.id, .conclusion, .check_run_url] | @tsv' | head -1)
+          IFS=$'\t' read -r job conclusion check_url <<<"$record"
           [ -n "$job" ] || { echo "test (ubuntu-24.04-arm) not found in this run" >&2; exit 1; }
-          notes=$(gh api "repos/${GITHUB_REPOSITORY}/check-runs/${job}/annotations" -q '.[].message')
+          if [ "$conclusion" = timed_out ]; then
+            echo "The ARM job timed out; trying the tests once more."
+            exit 0
+          fi
+          [ "$conclusion" = failure ] || { echo "The ARM job was not a failure or timeout; not retried." >&2; exit 1; }
+          notes=$(gh api "$check_url/annotations" -q '.[].message')
           echo "$notes"
           if grep -qE 'exit code 143|shutdown signal' <<<"$notes"; then
             echo "The ARM runner was shut down; trying the tests once more."
@@ -288,6 +303,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'false'
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     env:
       CARGO_PROFILE_DEV_DEBUG: "0"
       CARGO_PROFILE_TEST_DEBUG: "0"
@@ -307,6 +323,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.full == 'true' && needs.changes.outputs.rust == 'true'
     runs-on: macos-latest
+    timeout-minutes: 95
     env:
       CARGO_PROFILE_DEV_DEBUG: "0"
       CARGO_PROFILE_TEST_DEBUG: "0"
@@ -402,6 +419,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.full == 'true' && needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@1.88
@@ -419,6 +437,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.full == 'true' && needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -503,6 +522,7 @@ jobs:
     needs: [changes, fmt, release-notes, clippy, wasm, test, test-arm, test-arm-again, docs, test-macos, docker, msrv, solidcraft-roundtrip, placements, release-build]
     if: always()
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Check the results of every job
         env:
@@ -533,10 +553,10 @@ jobs:
               result = needs[job]["result"]
               if result != expected:
                   bad[job] = result + " (expected " + expected + ")"
-          # A passing retry replaces only a failed first ARM attempt, never a cancellation.
+          # The retry gate accepts only timeouts or runner shutdowns, never an ordinary test failure.
           arm = needs["test-arm"]["result"]
           retry = needs["test-arm-again"]["result"]
-          if (native and (arm, retry) not in (("success", "skipped"), ("failure", "success"))) or (not native and (arm, retry) != ("skipped", "skipped")):
+          if (native and (arm, retry) not in (("success", "skipped"), ("failure", "success"), ("cancelled", "success"))) or (not native and (arm, retry) != ("skipped", "skipped")):
               bad["test-arm"] = arm + "; retry: " + retry
           if any(outputs.get(key) not in ("true", "false") for key in ("full", "code", "rust", "docker")):
               bad["changes"] = "missing or unexpected filter outputs"

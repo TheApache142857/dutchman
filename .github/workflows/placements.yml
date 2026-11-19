@@ -28,6 +28,7 @@ env:
 jobs:
   changes:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       run: ${{ steps.diff.outputs.run }}
       voron: ${{ steps.diff.outputs.voron }}
@@ -44,7 +45,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.run == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 70
     container: debian:bookworm
     steps:
       - name: Install build dependencies
@@ -79,7 +80,7 @@ jobs:
     name: placements (${{ matrix.name }})
     needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 5
     strategy:
       fail-fast: false
       matrix:
@@ -131,7 +132,7 @@ jobs:
     needs: [changes, build]
     if: ${{ !inputs.smoke-only && needs.changes.outputs.voron == 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
