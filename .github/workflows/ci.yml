@@ -500,6 +500,10 @@ jobs:
     # Tags build directly in release-build.yml; main has the nightly builds. Queue groups
     # check every platform above, without building release archives and installers again.
     if: github.event_name == 'workflow_dispatch' && inputs.release-builds
+    # A called workflow can't hold more than its caller grants: release-build.yml asks for actions: read.
+    permissions:
+      contents: read
+      actions: read
     uses: ./.github/workflows/release-build.yml
 
   # The only required branch check. Accept skips only for the event and path filters above;
