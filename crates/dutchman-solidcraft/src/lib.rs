@@ -29,7 +29,9 @@ mod tolerances;
 pub use tolerances::report as verification_tolerances;
 #[cfg(test)]
 mod testing;
+mod verdicts;
 mod verify;
+pub use verdicts::{FeatureVerdict, PartVerdicts, Verdict};
 
 use std::sync::OnceLock;
 use std::time::Duration;

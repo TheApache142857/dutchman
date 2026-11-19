@@ -358,7 +358,7 @@ Which SolidCraft a design is written for, and how Dutchman finds the installed o
 ## Where next
 
 - [The desktop app](desktop.md): presets, estimates, the SolidCraft version, and updates.
-- [The command line](command-line.md): options, `inspect`, whole folders, watching a folder.
+- [The command line](command-line.md): options, `inspect`, `contents`, whole folders, watching a folder.
 - [Choosing what to keep](presets.md): Fast, Standard, Full, and the memory and time estimate.
 - [Formats](formats.md): what converts from each program.
 - [Feature history](history.md): what maps onto SolidCraft, and what stops a history.
@@ -423,6 +423,16 @@ This page used to hold everything. Each part now has its own page:
 ### Look before you convert: inspect
 
 [Look before you convert: inspect](command-line.md#look-before-you-convert-inspect)
+
+### List what a file holds: contents
+
+Assembly-owned features and parameters are included under their component paths,
+with records already present in child parts counted once.
+
+[List what a file holds: contents](command-line.md#list-what-a-file-holds-contents)
+
+Contents reports what maps for the newest SolidCraft release known to this build,
+without looking for or launching an installed SolidCraft CLI.
 
 ### Progress during conversion
 
