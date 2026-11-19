@@ -30,6 +30,22 @@ Local CLI and desktop progress can name the current timeline feature, such as
 These updates use `dutchman.progress/1`; MCP final conversion reports stay unchanged.
 Feature names are private local text and are excluded from anonymous diagnostics.
 
+For SolidCraft 0.44 and newer, extrude joins, cuts and intersections can keep a
+selected body scope at the final body-building feature when the reader names
+modified bodies and replay matches the final source geometry. The Info note `history/body-scope-confirmed`
+records this confirmation. Intermediate body centres cannot confirm body scope,
+so intermediate features keep the previous mapping. Without confirmation the
+previous mapping applies; older targets keep their existing output.
+
+On SolidCraft 0.44 and newer, a consumed boolean tool with no final body row
+keeps a name only when its identity is proved: the source retains exactly one
+history body with `produced_by` matching its single-output producer, or the
+complete replay matches the final source geometry. Replay candidates keep
+their names only after that check passes; intermediate body centres cannot
+confirm them. An output ID alone is not proof. Without proof, selecting the
+tool stops editable history with "it selects a body that an earlier feature
+has not named". Older targets keep the previous mapping.
+
 ## Public share links in the app and CLI
 
 The desktop app's **Add link**, paste, and shortcut/URI drop flows and `dutchman convert <url>` accept
