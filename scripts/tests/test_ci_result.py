@@ -108,3 +108,23 @@ class CiResultTests(unittest.TestCase):
             condition = re.sub(r"!(?!=)", "not ", condition.replace("&&", "and").replace("||", "or"))
             with self.subTest(job=job):
                 self.assertFalse(eval(condition, {"__builtins__": {}}))
+
+    def test_full_ci_accepts_retry_after_timeout_or_shutdown(self):
+        # A timeout can appear as failure or cancelled in the needs context.
+        # The retry itself verifies the Actions job conclusion before testing.
+        for first in ("failure", "cancelled"):
+            with self.subTest(first=first):
+                result = self.check_results("push", results={
+                    "test-arm": first, "test-arm-again": "success",
+                })
+                self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_full_ci_rejects_timeout_without_successful_retry(self):
+        for first in ("failure", "cancelled"):
+            for retry in ("failure", "cancelled", "skipped"):
+                with self.subTest(first=first, retry=retry):
+                    result = self.check_results("push", results={
+                        "test-arm": first, "test-arm-again": retry,
+                    })
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn("test-arm", result.stderr)

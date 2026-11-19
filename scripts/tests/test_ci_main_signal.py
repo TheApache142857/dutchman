@@ -10,7 +10,7 @@ spec.loader.exec_module(signal)
 
 
 class MainSignalTests(unittest.TestCase):
-    def report(self, failed=False, issue=None, sha="abc", main="abc", run="100", arm_retry=False):
+    def report(self, failed=False, issue=None, sha="abc", main="abc", run="100", arm_retry=False, arm_result="failure"):
         calls = []
         def api(path, payload=None, paginate=False):
             calls.append((path, payload))
@@ -24,7 +24,7 @@ class MainSignalTests(unittest.TestCase):
         if failed:
             results["test-macos"]["result"] = "failure"
         if arm_retry:
-            results["test-arm"]["result"] = "failure"
+            results["test-arm"]["result"] = arm_result
             results["test-arm-again"]["result"] = "success"
         signal.update(results, "owner/repo", sha, run, request=api)
         return [(path, payload) for path, payload in calls if payload is not None]
@@ -53,7 +53,8 @@ class MainSignalTests(unittest.TestCase):
         self.assertEqual(self.report(), [])
 
     def test_successful_arm_retry_is_green(self):
-        self.assertEqual(self.report(arm_retry=True), [])
+        for arm_result in ("failure", "cancelled"):
+            self.assertEqual(self.report(arm_retry=True, arm_result=arm_result), [])
 
     def test_stale_commit_or_run_cannot_overwrite_current_signal(self):
         self.assertEqual(self.report(failed=True, main="new"), [])

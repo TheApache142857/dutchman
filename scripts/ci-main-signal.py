@@ -25,7 +25,7 @@ def update(results, repo, sha, run_id, request=api):
     failed = sorted(job for job, value in results.items()
                     if value["result"] != "success"
                     and not (job == "test-arm-again" and value["result"] == "skipped")
-                    and not (job == "test-arm" and value["result"] == "failure"
+                    and not (job == "test-arm" and value["result"] in ("failure", "cancelled")
                              and results["test-arm-again"]["result"] == "success"))
     pages = request(f"repos/{repo}/issues?state=all&per_page=100", paginate=True)
     matches = [issue for page in pages for issue in page

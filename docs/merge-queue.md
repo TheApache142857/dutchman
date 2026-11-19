@@ -98,8 +98,8 @@ gh api repos/dutchman-cad/dutchman/rulesets -X POST --input ruleset.json
 - Linux checks and the shared tool build determine the queue critical path; platform tests run after merge.
 - GitHub's ARM runners are sometimes shut down mid-job (exit code 143, "The runner has received
   a shutdown signal"). The ARM tests run as their own job, `test (ubuntu-24.04-arm)`; when it
-  fails, `test (ubuntu-24.04-arm, again)` checks the failed job's annotations and, only after
-  such a shutdown, runs the tests once more. `ci-result` then counts the second try in place of
+  times out or fails, `test (ubuntu-24.04-arm, again)` checks its conclusion and annotations.
+  It retries a timeout without needing logs, or a failure with a runner-shutdown annotation. `ci-result` then counts the second try in place of
   the first. Any other failure is not retried and still fails `ci-result`.
 
 ## Enqueue
