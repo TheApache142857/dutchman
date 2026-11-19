@@ -188,15 +188,11 @@ jobs:
       CARGO_PROFILE_DEV_DEBUG: "0"
       CARGO_PROFILE_TEST_DEBUG: "0"
     steps:
-      # The Linux runner fills its disk building every crate's tests: free toolchains no job
-      # here uses.
-      - name: Free disk space
-        if: runner.os == 'Linux'
-        run: |
-          df -h /
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
-          df -h /
+      # Keep the low-space fallback for older images without deleting 19 GiB on every run.
       - uses: actions/checkout@v7
+      - name: Check free disk space
+        if: runner.os == 'Linux'
+        run: bash scripts/ci-disk-space.sh
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
@@ -230,12 +226,9 @@ jobs:
       # core it is shut down while compiling the desktop app and web crates.
       CARGO_BUILD_JOBS: "2"
     steps:
-      - name: Free disk space
-        run: |
-          df -h /
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
-          df -h /
       - uses: actions/checkout@v7
+      - name: Check free disk space
+        run: bash scripts/ci-disk-space.sh
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
@@ -284,12 +277,9 @@ jobs:
             echo "test (ubuntu-24.04-arm) failed on its own; not retried." >&2
             exit 1
           fi
-      - name: Free disk space
-        run: |
-          df -h /
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
-          df -h /
       - uses: actions/checkout@v7
+      - name: Check free disk space
+        run: bash scripts/ci-disk-space.sh
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
@@ -453,14 +443,10 @@ jobs:
       CARGO_PROFILE_DEV_DEBUG: "0"
       CARGO_PROFILE_TEST_DEBUG: "0"
     steps:
-      # The runner's preinstalled toolchains leave too little disk for a debug build of every
-      # crate: free the ones these jobs never use.
-      - name: Free disk space
-        run: |
-          df -h /
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
-          df -h /
+      # Debug=0 jobs on current images have ample disk; clean only smaller images.
       - uses: actions/checkout@v7
+      - name: Check free disk space
+        run: bash scripts/ci-disk-space.sh
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:

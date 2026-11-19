@@ -112,3 +112,7 @@ gh pr merge <n> --squash --auto
 
 With the ruleset active this adds the pull request to the queue. Remove it with
 `gh pr merge <n> --disable-auto` or from the pull request page.
+
+Linux test and round-trip jobs report free disk before building. Images with at least
+64 GiB free skip unused toolchain deletion; smaller images keep the previous cleanup.
+The audited x86_64 and ARM64 images started with 88 GiB and 107 GiB free respectively.
