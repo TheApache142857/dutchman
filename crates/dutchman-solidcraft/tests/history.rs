@@ -7911,6 +7911,37 @@ fn a_base_feature_is_imported_where_it_stands_in_the_timeline() {
     );
 }
 
+#[test]
+fn pasted_copies_are_imported_where_the_paste_stands_in_the_timeline() {
+    // The base feature replaced by a copy/paste whose output, the copy, is the cube's body.
+    let mut model = based_cube();
+    let mut wire = serde_json::to_value(&model.ir).unwrap();
+    let body = wire["geometry"]["bodies"][0]["id"].clone();
+    let features = wire["model"]["features"].as_array_mut().unwrap();
+    let paste = features.iter_mut().find(|f| f["ordinal"] == 0).unwrap();
+    paste["definition"] = json!({"kind": "operation", "value": {"kind": "insert_bodies",
+        "value": {"bodies": {"kind": "resolved", "value": {"native": "f3d:paste#1"}}}}});
+    paste["outputs"] = json!([body]);
+    paste["name"] = json!("Paste 1");
+    model.ir = cadmpeg_ir::CadIr::from_json(&wire.to_string()).unwrap();
+    let (document, report) = convert(
+        &model,
+        &SolidCraftWriter::new().verification(Verification::Off),
+    );
+    assert!(
+        history_line(&report).starts_with("3 of 3 features rebuilt"),
+        "{}",
+        history_line(&report)
+    );
+    let paste = &document["features"][0];
+    assert_eq!(paste["type"], "import");
+    assert_eq!(paste["name"], "Paste 1");
+    assert_eq!(
+        types(&document)[1..3],
+        [("sketch".to_owned(), false), ("hole".to_owned(), false),]
+    );
+}
+
 /// The based cube with a later shell of its body, which changes it, and, when `nested`, the
 /// base feature's own body as the source keeps it: a history body with a nest of its own.
 fn based_cube_changed_later(nested: bool) -> Model {
